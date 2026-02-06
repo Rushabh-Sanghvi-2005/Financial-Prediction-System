@@ -15,6 +15,7 @@ import ta
 import yfinance as yf
 import os
 import sys
+import subprocess  # Added for pipeline execution
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 
@@ -44,21 +45,41 @@ ENSEMBLE_FILE = config.ENSEMBLE_MODEL_FILE
 
 # --- Pipeline Initialization (Visual Loading) ---
 def run_step(desc, module_name):
-    """Helper to run a module as a subprocess."""
-    msg = st.empty()
-    try:
-        # Check if output exists to skip? 
-        # For now, we rely on the scripts' internal checks or just run them.
-        # But to be safe and fast, we can check file existence here too.
-        cmd = [sys.executable, "-m", module_name]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            st.error(f"Error in {desc}:\n{result.stderr}")
+    """Runs a module and streams output to UI."""
+    cmd = [sys.executable, "-m", module_name]
+    
+    with st.status(f"⚙️ Running: {desc}...", expanded=True) as status:
+        log_area = st.empty()
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT, 
+            text=True, 
+            bufsize=1, 
+            universal_newlines=True
+        )
+        
+        lines = []
+        while True:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                # Clean up line and append
+                clean_line = line.strip()
+                if clean_line:
+                    lines.append(clean_line)
+                    # Update UI with last 10 lines to show activity
+                    log_area.code("\n".join(lines[-10:]), language="bash")
+        
+        if process.returncode != 0:
+            status.update(label=f"❌ Failed: {desc}", state="error")
+            st.error(f"Process failed.")
             st.stop()
-        return True
-    except Exception as e:
-        st.error(f"Failed to run {desc}: {e}")
-        st.stop()
+        else:
+            status.update(label=f"✅ Completed: {desc}", state="complete", expanded=False)
+            
+    return True
 
 def initialize_system():
     """Runs the data/model pipeline if artifacts are missing."""
