@@ -19,11 +19,11 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 
 # Path Setup
+# --- Path Setup ---
 try:
     import src.config as config
 except ImportError:
-    # If running with streamlit run src/dashboard/app.py, cwd might be root, so this might work
-    # Or we need to look up
+    # Handle direct execution from different directories
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(current_dir))
     if project_root not in sys.path:
@@ -41,6 +41,70 @@ MODEL_1_FILE = config.MODEL_1_FILE
 MODEL_2_FILE = config.MODEL_2_FILE
 MODEL_3_FILE = config.MODEL_3_FILE
 ENSEMBLE_FILE = config.ENSEMBLE_MODEL_FILE
+
+# --- Pipeline Initialization (Visual Loading) ---
+def run_step(desc, module_name):
+    """Helper to run a module as a subprocess."""
+    msg = st.empty()
+    try:
+        # Check if output exists to skip? 
+        # For now, we rely on the scripts' internal checks or just run them.
+        # But to be safe and fast, we can check file existence here too.
+        cmd = [sys.executable, "-m", module_name]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            st.error(f"Error in {desc}:\n{result.stderr}")
+            st.stop()
+        return True
+    except Exception as e:
+        st.error(f"Failed to run {desc}: {e}")
+        st.stop()
+
+def initialize_system():
+    """Runs the data/model pipeline if artifacts are missing."""
+    if "pipeline_complete" not in st.session_state:
+        # Check if critical files exist
+        missing_artifacts = not (
+            os.path.exists(TEST_META_FILE) and 
+            os.path.exists(MODEL_1_FILE) and 
+            os.path.exists(ENSEMBLE_FILE) and
+            os.path.exists(PREDICTIONS_FILE)
+        )
+        
+        if missing_artifacts:
+            with st.status("🚀 Initializing System...", expanded=True) as status:
+                
+                # 1. Data Preparation
+                if not os.path.exists(TEST_META_FILE):
+                    st.write("📥 Downloading & Preparing Financial Data...")
+                    run_step("Data Preparation", "src.preparation.prepare_data")
+                    st.write("✅ Data Ready.")
+                
+                # 2. Model Training
+                if not os.path.exists(MODEL_1_FILE):
+                    st.write("🧠 Training Deep Learning Models (CNN-GRU-Transformer)...")
+                    run_step("Model Training", "src.training.train_base_models")
+                    st.write("✅ Base Models Trained.")
+                
+                # 3. Ensemble
+                if not os.path.exists(ENSEMBLE_FILE):
+                    st.write("🤝 Training Ensemble Meta-Learner...")
+                    run_step("Ensemble Training", "src.training.ensemble")
+                    st.write("✅ Ensemble Optimized.")
+
+                # 4. Final Predictions
+                if not os.path.exists(PREDICTIONS_FILE):
+                    st.write("🔮 Generating Forecasts...")
+                    # Ensemble script generates predictions too
+                    run_step("Final Forecasting", "src.training.ensemble") 
+                    st.write("✅ Forecasts Generated.")
+
+                status.update(label="System Ready!", state="complete", expanded=False)
+        
+        st.session_state["pipeline_complete"] = True
+
+# Run Initialization
+initialize_system()
 
 # Define Weights for Feature Importance Labels
 FEATURE_NAMES = ['M1_Hold', 'M1_Buy', 'M1_Sell', 'NBEATS_Pct', 'XGB_Hold', 'XGB_Buy', 'XGB_Sell']
