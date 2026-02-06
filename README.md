@@ -26,22 +26,20 @@ A comprehensive Deep Learning pipeline for stock market prediction, utilizing a 
 ## 📦 Installation & Usage
 
 **The Easiest Way:**
-1.  Download `start.bat` (The Universal Launcher).
-2.  Double-click it.
-    *   It will automatically download this repository.
+1.  **Download `start.bat`** from this repository (click the file above -> Download raw file, or Download ZIP and extract it).
+2.  Place `start.bat` in an empty folder on your PC.
+3.  **Double-click `start.bat`**.
+    *   It will automatically download the rest of this repository.
     *   It will set up a portable Python environment (if needed).
     *   It will train all models and launch the dashboard.
 
-**Manual Setup:**
+**Manual Setup (For Developers):**
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/Financial-Prediction-System.git
+git clone https://github.com/Rushabh-Sanghvi-2005/Financial-Prediction-System.git
 cd Financial-Prediction-System
 
-# 2. Install dependencies
-pip install -r requirements.txt  # (Note: Requirements are also embedded in bootstrap.py)
-
-# 3. Run the bootstrapper
+# 2. Run the bootstrapper
 python bootstrap.py
 ```
 
