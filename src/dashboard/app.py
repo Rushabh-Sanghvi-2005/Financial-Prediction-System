@@ -219,7 +219,21 @@ with tab1:
         from sklearn.metrics import classification_report
         report = classification_report(y_true, y_pred, target_names=['Hold', 'Buy', 'Sell'], output_dict=True)
         metrics_df = pd.DataFrame(report).transpose()
-        st.dataframe(metrics_df.style.highlight_max(axis=0))
+        
+        # 1. Formatting as Percentages
+        st.caption("Performance Percentages")
+        styled_df = metrics_df.style.format("{:.0%}")
+        st.dataframe(styled_df)
+
+        # 2. Visualization (Heatmap)
+        st.caption("Metrics Heatmap")
+        # Filter only classes, ignore accuracy/macro avg for heatmap
+        class_metrics = metrics_df.loc[['Hold', 'Buy', 'Sell'], ['precision', 'recall', 'f1-score']]
+        
+        fig_m, ax_m = plt.subplots(figsize=(8, 4))
+        sns.heatmap(class_metrics, annot=True, fmt='.0%', cmap='RdYlGn', ax=ax_m)
+        ax_m.set_title("Precision, Recall & F1-Score per Class")
+        st.pyplot(fig_m)
 
     else:
         st.error(f"Prediction files not found at {PREDICTIONS_FILE}. Please run the training pipeline.")
