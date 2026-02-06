@@ -220,20 +220,31 @@ with tab1:
         report = classification_report(y_true, y_pred, target_names=['Hold', 'Buy', 'Sell'], output_dict=True)
         metrics_df = pd.DataFrame(report).transpose()
         
-        # 1. Formatting as Percentages
-        st.caption("Performance Percentages")
-        styled_df = metrics_df.style.format("{:.0%}")
-        st.dataframe(styled_df)
-
-        # 2. Visualization (Heatmap)
-        st.caption("Metrics Heatmap")
-        # Filter only classes, ignore accuracy/macro avg for heatmap
-        class_metrics = metrics_df.loc[['Hold', 'Buy', 'Sell'], ['precision', 'recall', 'f1-score']]
+        # New Layout: Side-by-Side
+        m_col1, m_col2 = st.columns([1, 1])
         
-        fig_m, ax_m = plt.subplots(figsize=(8, 4))
-        sns.heatmap(class_metrics, annot=True, fmt='.0%', cmap='RdYlGn', ax=ax_m)
-        ax_m.set_title("Precision, Recall & F1-Score per Class")
-        st.pyplot(fig_m)
+        with m_col1:
+            st.caption("Performance Percentages")
+            # Specific formatting: % for metrics, Int for support
+            format_dict = {
+                'precision': '{:.0%}',
+                'recall': '{:.0%}',
+                'f1-score': '{:.0%}',
+                'support': '{:.0f}'
+            }
+            styled_df = metrics_df.style.format(format_dict)
+            st.dataframe(styled_df, use_container_width=True)
+
+        with m_col2:
+            st.caption("Metrics Heatmap")
+            # Filter only classes, ignore accuracy/macro avg for heatmap
+            class_metrics = metrics_df.loc[['Hold', 'Buy', 'Sell'], ['precision', 'recall', 'f1-score']]
+            
+            # Adjusted figsize for smaller concise plot
+            fig_m, ax_m = plt.subplots(figsize=(5, 3))
+            sns.heatmap(class_metrics, annot=True, fmt='.0%', cmap='RdYlGn', ax=ax_m, cbar=False)
+            ax_m.set_title("Score Heatmap")
+            st.pyplot(fig_m, use_container_width=True)
 
     else:
         st.error(f"Prediction files not found at {PREDICTIONS_FILE}. Please run the training pipeline.")
